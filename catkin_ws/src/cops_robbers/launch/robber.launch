@@ -1,0 +1,10 @@
+<launch>
+
+    <include file="$(find turtlebot_teleop)/launch/includes/velocity_smoother.launch.xml"/>
+    
+    <node pkg="cops_robbers" type="robber.py" name="robber">
+        <param name="obstacle_stopping" value="1.5"/>
+        <remap from="mobile_base/commands/velocity" to="teleop_velocity_smoother/raw_cmd_vel"/>
+    </node>
+
+</launch>
