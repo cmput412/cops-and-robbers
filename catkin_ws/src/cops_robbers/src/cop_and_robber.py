@@ -304,7 +304,6 @@ class StartStateCop(smach.State):
 
     def obj_point_range(self, minimum_range, scan_coord, scan, angle_min, angle_max, angle_increment):
         #Return the coord range 
-        #look right
         objStart = scan_coord
         objStart_dist = minimum_range
         last_seen = minimum_range
