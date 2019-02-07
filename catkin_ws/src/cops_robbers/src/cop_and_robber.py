@@ -212,45 +212,28 @@ class StartStateCop(smach.State):
         self.START = 1
         smach.State.__init__(self, outcomes=['Done', 'Sleep'])
         self.rate = rospy.Rate(10)
+
+        ### Subscribers/ Publishers
         self.button = rospy.Subscriber('joy', Joy, self.button_callback)
         self.vel_pub = rospy.Publisher('mobile_base/commands/velocity', Twist, queue_size = 5 )
         self.laser_sub = rospy.Subscriber('scan', LaserScan, self.laser_callback, queue_size=1)
 
+        ### Non-paramter attributes
         self.followed_angle = None #angle of object we are tracking
-
-        self.twist = Twist()
-
+        self.twist = Twist() #Twist msg
         self.minimum_range = None #minimum dist to object we are tracking 
-
         self.scan_init = False
-
-        self.max_turn_speed = 1
-
-        self.follow_distance = 0.6
-
-        self.follow_distance_err = 0.05
-
-        self.angular_err = 0.05 #not sure if we still need this
-
         self.timer = rospy.get_time()
-
-        self.lin_x_scale = 2
-
-        self.angular_scale = 4
-
-        self.slow_down_factor = 0.8
-
+        self.stop = 0
         self.end = 0
 
+        ### Parameters (may be fine tuned)
+        self.max_turn_speed = 1
+        self.follow_distance = 0.6
+        self.follow_distance_err = 0.05 #thresholding paramter
+        self.lin_x_scale = 2
+        self.angular_scale = 4
         self.image_recog_offset = 0.01
-
-        self.point_drift = 20
-
-        self.followed_obj = None
-
-        self.last_counter = None
-
-        self.stop = 0
 
     def odom_callback(self,msg):
         self.orientation = msg.pose.pose.orientation
@@ -266,7 +249,7 @@ class StartStateCop(smach.State):
         angle_max = msg.angle_max
         angle_increment = msg.angle_increment
 
-        self.process_scan(msg.ranges, angle_min, angle_max, angle_increment )
+        self.process_scan(msg.ranges, angle_min, angle_max, angle_increment)
 
     def button_callback(self,msg):
         if msg.buttons[1] == 1:
@@ -300,9 +283,11 @@ class StartStateCop(smach.State):
         return 'Done'
 
     def process_scan(self, scan, angle_min, angle_max, angle_increment):
+        """Sets angle of tracked object, as well as range of followed object"""
+
         minimum_range = 10000 # arbitray big number
         scan = list(scan)
-        counter = 0
+        counter = 0 #position of minimum point within array
 
         #find minimum range point
         for i in range(len(scan)):
@@ -313,7 +298,7 @@ class StartStateCop(smach.State):
         #next check if this is the robot to be followed
         size, objStart_ind, objEnd_ind  =  self.obj_point_range(minimum_range, counter, scan, angle_min, angle_max, angle_increment)
         
-        if size < 0.3 and size > 0.1  and (objStart_ind > 40) and (objEnd_ind < 595) :
+        if size < 0.3 and size > 0.1  and (objStart_ind > 40) and (objEnd_ind < 595) : # of object is of correct size
             self.followed_angle = angle_min + (counter * angle_increment) #gives the position of the object in radians
             self.minimum_range = minimum_range
 
