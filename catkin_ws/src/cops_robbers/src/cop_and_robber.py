@@ -21,7 +21,6 @@ class DrivingForward(smach.State):
         self.g_range_ahead = 1
         self.scan_sub = rospy.Subscriber('scan', LaserScan, self.scan_callback)
         self.cmd_vel_pub = rospy.Publisher('mobile_base/commands/velocity', Twist, queue_size = 1 )
-        #self.odom_sub = rospy.Subscriber('odom', Odometry, self.odom_callback)
         self.bumper = rospy.Subscriber('mobile_base/events/bumper', BumperEvent, self.bumper_callback)
         self.rate = rospy.Rate(10)
         self.button = rospy.Subscriber('/joy', Joy, self.button_callback)
@@ -69,7 +68,6 @@ class DrivingForward(smach.State):
             twist = Twist()
             twist.linear.x = 0.6
 
-            
             self.cmd_vel_pub.publish(twist)
             self.rate.sleep()
 
@@ -104,7 +102,6 @@ class Turning(smach.State):
                 self.stop = 0
                 return 'Sleep'
 
-            #if rospy.Time.now() <  state_change_time:
             twist = Twist()
             if direction == 0:
                 twist.angular.z = 2
@@ -141,7 +138,6 @@ class StartStateRobber(smach.State):
         pi = 3.14
 
         while not rospy.is_shutdown():
-            #if rospy.Time.now() <  state_change_time:
             twist = Twist()
             while state_change_time > rospy.Time.now():
                 if self.stop:
@@ -192,9 +188,6 @@ class SleepState(smach.State):
                 rospy.loginfo('Robber mode')
                 self.led.publish(3)
 
-        #elif msg.buttons[1] == 1:
-            #self.end = 1l
-
     def execute(self, userdata):
         rospy.loginfo('Executing sleep state')
 
@@ -222,9 +215,7 @@ class StartStateCop(smach.State):
         self.button = rospy.Subscriber('joy', Joy, self.button_callback)
         self.vel_pub = rospy.Publisher('mobile_base/commands/velocity', Twist, queue_size = 5 )
         self.laser_sub = rospy.Subscriber('scan', LaserScan, self.laser_callback, queue_size=1)
-       # self.odom_sub = rospy.Subscriber('odom', Odometry, self.odom_callback)
 
-       # self.num_laser_partitions = 40
         self.followed_angle = None #angle of object we are tracking
 
         self.twist = Twist()
@@ -288,23 +279,17 @@ class StartStateCop(smach.State):
             if self.stop:
                 self.stop = 0
                 return 'Sleep'
-            # Check our movement thresholds
-
-            
+            # Check movement thresholds
             if self.minimum_range != None:
                 
                 if ( self.follow_distance - self.follow_distance_err ) > self.minimum_range:
                     #Too close  
-                    #rospy.loginfo( self.minimum_range)
+
                     # Compute the linear component of the movement
                     self.twist.linear.x = (self.minimum_range - self.follow_distance) * self.lin_x_scale #negative
 
                 elif ( self.follow_distance + self.follow_distance_err ) < self.minimum_range:
                     self.twist.linear.x = (self.minimum_range - self.follow_distance) * self.lin_x_scale #positive
-                    #rospy.loginfo( self.minimum_range)
-
-
-
 
                 # #angular speed
                 self.twist.angular.z =  self.followed_angle * self.angular_scale 
@@ -315,10 +300,9 @@ class StartStateCop(smach.State):
         return 'Done'
 
     def process_scan(self, scan, angle_min, angle_max, angle_increment):
-        minimum_range = 10000 #big number
+        minimum_range = 10000 # arbitray big number
         scan = list(scan)
         counter = 0
-
 
         #find minimum range point
         for i in range(len(scan)):
@@ -329,9 +313,7 @@ class StartStateCop(smach.State):
         #next check if this is the robot to be followed
         size, objStart_ind, objEnd_ind  =  self.obj_point_range(minimum_range, counter, scan, angle_min, angle_max, angle_increment)
         
-        #rospy.loginfo("start :" + str(objEnd_ind))
         if size < 0.3 and size > 0.1  and (objStart_ind > 40) and (objEnd_ind < 595) :
-
             self.followed_angle = angle_min + (counter * angle_increment) #gives the position of the object in radians
             self.minimum_range = minimum_range
 
@@ -376,10 +358,7 @@ class StartStateCop(smach.State):
         dist = ( objStart_dist + objEnd_dist) / 2 #avg dist away
         size = math.sin( abs(objStart - objEnd) / 2 ) * 2 * dist
 
-
         return size, objStart_ind, objEnd_ind
-
-
 
 def main():
     rospy.init_node('robber')
